@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String // STUDENT, LECTURER, ADMIN, MANAGER
+  status    String   @default("ACTIVE") // ACTIVE, INACTIVE
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student  Student?
+  lecturer Lecturer?
+}
+
+model Student {
+  id           String  @id @default(uuid())
+  mssv         String  @unique
+  userId       String  @unique
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cohort       String
+  facultyId    String?
+  majorId      String?
+  currentGPA   Float   @default(0.0)
+  totalCredits Int     @default(0)
+
+  // Profile extensions
+  dateOfBirth  DateTime?
+  idCardNumber String?
+  address      String?
+  ethnicity    String?
+  phone        String?
+
+  // Graduation Fields
+  isGraduated    Boolean   @default(false)
+  graduationDate DateTime?
+
+
+  enrollments Enrollment[]
+  attendance  AttendanceRecord[]
+  regradeReqs RegradeRequest[]
+  invoices    TuitionInvoice[]
+  notifications NotificationRecipient[]
+}
+
+model Lecturer {
+  id           String  @id @default(uuid())
+  lecturerCode String  @unique @default(uuid())
+  userId       String  @unique
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  facultyId    String?
+  departmentId String?
+
+  classSections ClassSection[]
+  sentNotifications Notification[]
+}
+
+model AcademicProgram {
+  id          String  @id @default(uuid())
+  name        String
+  majorId     String?
+  startCohort String
+}
+
+model Course {
+  id                String               @id @default(uuid())
+  code              String               @unique
+  name              String
+  credits           Int
+  prerequisiteLinks CoursePrerequisite[] @relation("CoursePrerequisiteSource")
+  requiredFor       CoursePrerequisite[] @relation("CoursePrerequisiteTarget")
+
+  classSections ClassSection[]
+  scoreSettings ScoreSettings[]
+}
+
+model CoursePrerequisite {
+  courseId       String
+  prerequisiteId String
+  course         Course @relation("CoursePrerequisiteSource", fields: [courseId], references: [id], onDelete: Cascade)
+  prerequisite   Course @relation("CoursePrerequisiteTarget", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, prerequisiteId])
+}
+
+model Semester {
+  id               String   @id @default(uuid())
+  name             String
+  startDate        DateTime
+  endDate          DateTime
+  isCurrent        Boolean  @default(false)
+  registrationOpen Boolean  @default(false)
+
+  classSections ClassSection[]
+  invoices      TuitionInvoice[]
+}
+
+model ClassSection {
+  id         String   @id @default(uuid())
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id])
+  semesterId String
+  semester   Semester @relation(fields: [semesterId], references: [id])
+  lecturerId String
+  lecturer   Lecturer @relation(fields: [lecturerId], references: [id])
+  capacity   Int
+  status     String // OPEN, CLOSED, CANCELLED
+
+  schedules          Schedule[]
+  enrollments        Enrollment[]
+  attendanceSessions AttendanceSession[]
+  regradeReqs        RegradeRequest[]
+  notifications      Notification[]
+}
+
+model Schedule {
+  id             String       @id @default(uuid())
+  classSectionId String
+  classSection   ClassSection @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  dayOfWeek      Int
+  room           String
+  startTime      String
+  endTime        String
+  type           String // LECTURE, EXAM
+}
+
+model Enrollment {
+  id             String       @id @default(uuid())
+  studentId      String
+  student        Student      @relation(fields: [studentId], references: [id])
+  classSectionId String
+  classSection   ClassSection @relation(fields: [classSectionId], references: [id])
+  status         String // ENROLLED, DROPPED
+
+  scores Score[]
+
+  @@unique([studentId, classSectionId])
+}
+
+model AttendanceSession {
+  id             String       @id @default(uuid())
+  classSectionId String
+  classSection   ClassSection @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  date           DateTime
+  qrCodeToken    String?
+  expiresAt      DateTime?
+
+  records AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id        String            @id @default(uuid())
+  sessionId String
+  session   AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student           @relation(fields: [studentId], references: [id])
+  status    String // PRESENT, ABSENT, LATE
+
+  @@unique([sessionId, studentId])
+}
+
+model ScoreSettings {
+  id            String @id @default(uuid())
+  courseId      String
+  course        Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  componentName String
+  percentage    Float
+
+  scores      Score[]
+  regradeReqs RegradeRequest[]
+
+  @@unique([courseId, componentName])
+}
+
+model Score {
+  id           String        @id @default(uuid())
+  enrollmentId String
+  enrollment   Enrollment    @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  componentId  String
+  component    ScoreSettings @relation(fields: [componentId], references: [id])
+  scoreValue   Float?
+  isFinalized  Boolean       @default(false)
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([enrollmentId, componentId])
+}
+
+model RegradeRequest {
+  id              String         @id @default(uuid())
+  studentId       String
+  student         Student        @relation(fields: [studentId], references: [id])
+  classSectionId  String
+  classSection    ClassSection   @relation(fields: [classSectionId], references: [id])
+  componentId     String?
+  component       ScoreSettings? @relation(fields: [componentId], references: [id])
+  currentScore    Float
+  requestedScore  Float?
+  approvedScore   Float?
+  reason          String
+  lecturerComment String?
+  status          String // PENDING, EVALUATING, APPROVED, REJECTED
+  evidenceUrl     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model TuitionInvoice {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id])
+  semesterId  String
+  semester    Semester @relation(fields: [semesterId], references: [id])
+  totalAmount Float
+  status      String // PENDING, PAID, CANCELLED
+  createdAt   DateTime @default(now())
+
+  payments Payment[]
+}
+
+model Payment {
+  id            String         @id @default(uuid())
+  invoiceId     String
+  invoice       TuitionInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount        Float
+  transactionId String?
+  method        String // VNPAY, CASH, TRANSFER
+  status        String // SUCCESS, FAILED, PENDING
+  timestamp     DateTime       @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String // CREATE, UPDATE, DELETE, PUBLISH
+  entity    String // STUDENT, COURSE, CLASS_SECTION, SCORE, REGRADE_REQUEST
+  oldData   String?
+  newData   String?
+  ip        String?
+  timestamp DateTime @default(now())
+}
+
+model Notification {
+  id             String        @id @default(uuid())
+  title          String
+  content        String
+  date           DateTime      @default(now())
+  
+  senderId       String
+  sender         Lecturer      @relation(fields: [senderId], references: [id])
+
+  classSectionId String?
+  classSection   ClassSection? @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+
+  recipients     NotificationRecipient[]
+}
+
+model NotificationRecipient {
+  id             String       @id @default(uuid())
+  notificationId String
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  isRead         Boolean      @default(false)
+  readAt         DateTime?
+
+  @@unique([notificationId, studentId])
+}
