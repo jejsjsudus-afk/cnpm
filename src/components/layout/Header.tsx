@@ -18,11 +18,13 @@ export function Header() {
       <div className="flex-1 max-w-xl flex items-center pr-4 gap-4">
         {/* Mobile Menu Trigger */}
         <Sheet>
-          <SheetTrigger asChild>
-            <button className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md">
-              <Menu className="h-6 w-6" />
-            </button>
-          </SheetTrigger>
+          <SheetTrigger
+            render={
+              <button className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md">
+                <Menu className="h-6 w-6" />
+              </button>
+            }
+          />
           <SheetContent side="left" className="p-0 w-72">
             <SheetHeader className="hidden">
               <SheetTitle>Menu</SheetTitle>
