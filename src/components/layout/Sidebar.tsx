@@ -11,7 +11,11 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
-export function Sidebar() {
+interface SidebarProps {
+  isMobile?: boolean;
+}
+
+export function Sidebar({ isMobile }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const role = session?.user?.role;
@@ -69,6 +73,53 @@ export function Sidebar() {
   const visibleGroups = menuGroups.filter(group => 
     group.roles.includes(role || "")
   );
+
+  if (isMobile) {
+    return (
+      <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-8 custom-scrollbar">
+        <div className="space-y-1">
+          <Link
+            href="/dashboard"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium",
+              pathname === "/dashboard" 
+                ? "bg-orange-600 text-white" 
+                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+            )}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Tổng quan
+          </Link>
+        </div>
+
+        {visibleGroups.map((group) => (
+          <div key={group.label} className="space-y-1">
+            <div className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {group.label}
+            </div>
+            {group.routes.map((route) => {
+              const active = pathname === route.href || (pathname.startsWith(`${route.href}/`) && route.href !== '/dashboard');
+              return (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium",
+                    active 
+                      ? "bg-orange-600 text-white" 
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  )}
+                >
+                  <route.icon className="h-4 w-4" />
+                  {route.title}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+    );
+  }
 
   return (
     <aside className="w-64 h-screen bg-[#0f172a] text-slate-300 flex flex-col hidden lg:flex shrink-0">

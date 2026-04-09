@@ -2,18 +2,46 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Bell, Search, LogOut, User } from "lucide-react";
+import { Bell, Search, LogOut, User, Menu, GraduationCap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sidebar } from "./Sidebar";
 
 export function Header() {
   const { data: session } = useSession();
   const router = useRouter();
 
   return (
-    <header className="h-16 shrink-0 flex items-center justify-between px-6 bg-white border-b border-slate-200">
-      <div className="flex-1 max-w-xl flex items-center pr-4">
+    <header className="h-16 shrink-0 flex items-center justify-between px-4 md:px-6 bg-white border-b border-slate-200">
+      <div className="flex-1 max-w-xl flex items-center pr-4 gap-4">
+        {/* Mobile Menu Trigger */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <button className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md">
+              <Menu className="h-6 w-6" />
+            </button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72">
+            <SheetHeader className="hidden">
+              <SheetTitle>Menu</SheetTitle>
+            </SheetHeader>
+            <div className="h-full flex flex-col bg-[#0f172a]">
+              {/* Tái hiện phần logo trong mobile menu */}
+              <div className="h-16 shrink-0 flex items-center px-6 bg-slate-900/50 border-b border-slate-800/50">
+                <div className="flex items-center gap-3 text-white">
+                  <div className="bg-orange-600 p-1.5 rounded-md">
+                    <GraduationCap className="h-5 w-5" />
+                  </div>
+                  <span className="font-semibold text-lg tracking-tight">UTT Portal</span>
+                </div>
+              </div>
+              <Sidebar isMobile />
+            </div>
+          </SheetContent>
+        </Sheet>
+
         <div className="relative w-full max-w-sm hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
